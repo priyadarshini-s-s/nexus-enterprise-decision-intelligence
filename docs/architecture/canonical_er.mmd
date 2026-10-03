@@ -1,0 +1,64 @@
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_ITEM : contains
+    ORDER ||--o{ PAYMENT : has
+    ORDER ||--o{ REVIEW : receives
+    PRODUCT ||--o{ ORDER_ITEM : sold_in
+    SELLER ||--o{ ORDER_ITEM : fulfills
+
+    CUSTOMER {
+        string customer_id PK
+        string customer_unique_id
+        string zip_prefix
+        string city
+        string state
+    }
+
+    ORDER {
+        string order_id PK
+        string customer_id FK
+        string status
+        datetime purchase_ts
+        datetime approved_ts
+        datetime carrier_ts
+        datetime delivered_ts
+        datetime estimated_delivery_ts
+    }
+
+    ORDER_ITEM {
+        string order_id PK, FK
+        int order_item_id PK
+        string product_id FK
+        string seller_id FK
+        datetime shipping_limit_ts
+        decimal price
+        decimal freight_value
+    }
+
+    PRODUCT {
+        string product_id PK
+        string category
+    }
+
+    SELLER {
+        string seller_id PK
+        string zip_prefix
+        string city
+        string state
+    }
+
+    PAYMENT {
+        string order_id FK
+        string payment_type
+        int installments
+        decimal payment_value
+    }
+
+    REVIEW {
+        string review_id
+        string order_id FK
+        int review_score
+        string review_title
+        string review_message
+        datetime review_creation_ts
+    }

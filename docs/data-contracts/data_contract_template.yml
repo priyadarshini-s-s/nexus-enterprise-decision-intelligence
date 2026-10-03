@@ -1,0 +1,40 @@
+# NEXUS source data contract template
+# This is a template. Populate it after inspecting each downloaded source.
+
+dataset_id: ""
+domain: ""
+source_name: ""
+source_url: ""
+license: ""
+description: ""
+
+table:
+  name: ""
+  grain: ""
+  primary_key: []
+  foreign_keys: []
+  event_time:
+    column: ""
+    semantic: ""
+  ingestion_time:
+    column: "_ingestion_timestamp"
+
+schema_version: "0.1"
+
+quality:
+  required_columns: []
+  uniqueness:
+    - columns: []
+  not_null:
+    - columns: []
+  accepted_values: []
+  referential_integrity: []
+
+privacy:
+  pii_present: false
+  notes: ""
+
+lineage:
+  upstream: ""
+  transformations: []
+  downstream_products: []
