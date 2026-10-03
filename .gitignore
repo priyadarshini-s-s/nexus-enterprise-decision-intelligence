@@ -58,4 +58,7 @@ Thumbs.db
 # IDE
 # =========================
 .vscode/
+# MLflow local tracking
+mlflow.db
+mlruns/
 .idea/
