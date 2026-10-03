@@ -1,0 +1,21 @@
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.0
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.0
+    skops_trusted_types: null
+mlflow_version: 3.16.1
+model_id: null
+model_size_bytes: 33288
+model_uuid: 3e0eedc3838f42db8df2a487f28258b6
+prompts: null
+utc_time_created: '2026-10-03 18:22:15.737758'

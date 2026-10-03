@@ -1,5 +1,5 @@
 from typing import Literal
-
+import os
 import mlflow
 import mlflow.sklearn
 import pandas as pd
@@ -15,7 +15,10 @@ from services.decision_engine.population_policy import (
 # NEXUS — Retention Model + Decision API
 # =============================================================================
 
-MODEL_URI = "models:/logistic_retention/2"
+MODEL_URI = os.getenv(
+    "NEXUS_RETENTION_MODEL_URI",
+    "models:/logistic_retention/2",
+)
 
 MODEL_NAME = "logistic_retention"
 MODEL_VERSION = "2"

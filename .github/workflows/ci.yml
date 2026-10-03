@@ -21,11 +21,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install application dependencies
         run: |
           python -m pip install --upgrade pip
           pip install fastapi uvicorn pytest httpx pandas numpy scikit-learn mlflow joblib pydantic
 
+      - name: Install model dependencies
+        run: |
+          pip install -r models/retention/logistic_retention_v2/requirements.txt
+
       - name: Run retention API contract tests
+        env:
+          NEXUS_RETENTION_MODEL_URI: models/retention/logistic_retention_v2
         run: |
           python -m pytest services/retention_api/test_api_contract.py -v
