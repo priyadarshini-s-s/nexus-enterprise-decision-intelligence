@@ -62,3 +62,6 @@ Thumbs.db
 mlflow.db
 mlruns/
 .idea/
+# Local API test payloads
+decision_request.json
+predict_request.json
