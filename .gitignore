@@ -79,3 +79,8 @@ predict_request.json
 # MLflow
 mlflow.db
 mlruns/
+# Apache Iceberg generated warehouse
+data/iceberg/
+
+# Local Spark validation artifacts
+data/spark_test_411/
