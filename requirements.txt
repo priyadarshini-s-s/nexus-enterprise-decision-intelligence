@@ -1,0 +1,11 @@
+numpy
+pandas
+pyarrow
+scikit-learn
+xgboost
+statsmodels==0.15.0
+fastapi
+uvicorn
+httpx
+mlflow
+joblib
