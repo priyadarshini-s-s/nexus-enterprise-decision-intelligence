@@ -9,6 +9,10 @@ on:
       - main
 
 jobs:
+
+  # ---------------------------------------------------------
+  # JOB 1: Python/API contract tests
+  # ---------------------------------------------------------
   test-retention-api:
     runs-on: ubuntu-latest
 
@@ -35,3 +39,283 @@ jobs:
           NEXUS_RETENTION_MODEL_URI: models/retention/logistic_retention_v2
         run: |
           python -m pytest services/retention_api/test_api_contract.py -v
+
+
+  # ---------------------------------------------------------
+  # JOB 2: Docker build + running-container smoke tests
+  # ---------------------------------------------------------
+  test-retention-docker:
+    runs-on: ubuntu-latest
+    needs: test-retention-api
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag nexus-retention-api:ci \
+            .
+
+      - name: Start retention API container
+        run: |
+          docker run \
+            --detach \
+            --name nexus-retention-api \
+            --publish 8000:8000 \
+            nexus-retention-api:ci
+
+      - name: Wait for API startup
+        run: |
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:8000/health; then
+              echo
+              echo "API is ready."
+              exit 0
+            fi
+
+            echo "Waiting for API..."
+            sleep 2
+          done
+
+          echo "API failed to start."
+          docker logs nexus-retention-api
+          exit 1
+
+      - name: Test health endpoint
+        run: |
+          curl --fail http://localhost:8000/health
+
+      - name: Test model metadata endpoint
+        run: |
+          curl --fail http://localhost:8000/model
+
+      - name: Create prediction request
+        run: |
+          cat > predict_request.json <<'EOF'
+          {
+            "orders_to_date": 1,
+            "total_spend_to_date": 105.74,
+            "total_order_items_to_date": 1,
+            "unique_products_to_date": 1,
+            "unique_categories_to_date": 1,
+            "unique_sellers_to_date": 1,
+            "recency_days": 89.5,
+            "average_order_value": 105.74,
+            "average_items_per_order": 1,
+            "orders_30d": 0,
+            "spend_30d": 0,
+            "items_30d": 0,
+            "orders_60d": 0,
+            "spend_60d": 0,
+            "items_60d": 0,
+            "orders_90d": 1,
+            "spend_90d": 105.74,
+            "items_90d": 1,
+            "average_review_score_to_date": 5,
+            "payment_observation_available": 1,
+            "review_observation_available": 1,
+            "item_observation_available": 1
+          }
+          EOF
+
+      - name: Test prediction endpoint
+        run: |
+          response=$(curl \
+            --fail \
+            --silent \
+            --show-error \
+            -X POST \
+            http://localhost:8000/predict \
+            -H "Content-Type: application/json" \
+            --data-binary "@predict_request.json")
+
+          echo "$response"
+
+          python -c "
+          import json
+          import sys
+
+          data = json.loads(sys.argv[1])
+
+          assert data['model'] == 'logistic_retention'
+          assert data['model_version'] == '2'
+          assert data['target'] == 'repeat_purchase_90d'
+          assert data['prediction_horizon_days'] == 90
+
+          probability = data['repeat_purchase_probability']
+
+          assert 0.0 <= probability <= 1.0
+
+          print('Prediction smoke test: PASS')
+          " "$response"
+
+      - name: Create decision request
+        run: |
+          cat > decision_request.json <<'EOF'
+          {
+            "capacity_fraction": 0.5,
+            "customers": [
+              {
+                "customer_id": "CUST_001",
+                "orders_to_date": 1,
+                "total_spend_to_date": 105.74,
+                "total_order_items_to_date": 1,
+                "unique_products_to_date": 1,
+                "unique_categories_to_date": 1,
+                "unique_sellers_to_date": 1,
+                "recency_days": 89.5,
+                "average_order_value": 105.74,
+                "average_items_per_order": 1,
+                "orders_30d": 0,
+                "spend_30d": 0,
+                "items_30d": 0,
+                "orders_60d": 0,
+                "spend_60d": 0,
+                "items_60d": 0,
+                "orders_90d": 1,
+                "spend_90d": 105.74,
+                "items_90d": 1,
+                "average_review_score_to_date": 5,
+                "payment_observation_available": 1,
+                "review_observation_available": 1,
+                "item_observation_available": 1
+              },
+              {
+                "customer_id": "CUST_002",
+                "orders_to_date": 2,
+                "total_spend_to_date": 450.00,
+                "total_order_items_to_date": 3,
+                "unique_products_to_date": 3,
+                "unique_categories_to_date": 2,
+                "unique_sellers_to_date": 2,
+                "recency_days": 20,
+                "average_order_value": 225.00,
+                "average_items_per_order": 1.5,
+                "orders_30d": 1,
+                "spend_30d": 225.00,
+                "items_30d": 1,
+                "orders_60d": 1,
+                "spend_60d": 225.00,
+                "items_60d": 1,
+                "orders_90d": 2,
+                "spend_90d": 450.00,
+                "items_90d": 3,
+                "average_review_score_to_date": 4,
+                "payment_observation_available": 1,
+                "review_observation_available": 1,
+                "item_observation_available": 1
+              },
+              {
+                "customer_id": "CUST_003",
+                "orders_to_date": 1,
+                "total_spend_to_date": 80.00,
+                "total_order_items_to_date": 1,
+                "unique_products_to_date": 1,
+                "unique_categories_to_date": 1,
+                "unique_sellers_to_date": 1,
+                "recency_days": 300,
+                "average_order_value": 80.00,
+                "average_items_per_order": 1,
+                "orders_30d": 0,
+                "spend_30d": 0,
+                "items_30d": 0,
+                "orders_60d": 0,
+                "spend_60d": 0,
+                "items_60d": 0,
+                "orders_90d": 0,
+                "spend_90d": 0,
+                "items_90d": 0,
+                "average_review_score_to_date": 3,
+                "payment_observation_available": 1,
+                "review_observation_available": 1,
+                "item_observation_available": 1
+              },
+              {
+                "customer_id": "CUST_004",
+                "orders_to_date": 3,
+                "total_spend_to_date": 700.00,
+                "total_order_items_to_date": 5,
+                "unique_products_to_date": 4,
+                "unique_categories_to_date": 3,
+                "unique_sellers_to_date": 3,
+                "recency_days": 10,
+                "average_order_value": 233.33,
+                "average_items_per_order": 1.67,
+                "orders_30d": 2,
+                "spend_30d": 500.00,
+                "items_30d": 3,
+                "orders_60d": 2,
+                "spend_60d": 500.00,
+                "items_60d": 3,
+                "orders_90d": 3,
+                "spend_90d": 700.00,
+                "items_90d": 5,
+                "average_review_score_to_date": 4.5,
+                "payment_observation_available": 1,
+                "review_observation_available": 1,
+                "item_observation_available": 1
+              }
+            ]
+          }
+          EOF
+
+      - name: Test decision endpoint
+        run: |
+          response=$(curl \
+            --fail \
+            --silent \
+            --show-error \
+            -X POST \
+            http://localhost:8000/decision \
+            -H "Content-Type: application/json" \
+            --data-binary "@decision_request.json")
+
+          echo "$response"
+
+          python -c "
+          import json
+          import sys
+
+          data = json.loads(sys.argv[1])
+
+          assert data['model'] == 'logistic_retention'
+          assert data['model_version'] == '2'
+          assert data['population_size'] == 4
+          assert data['capacity_fraction'] == 0.5
+          assert data['target_population_size'] == 2
+
+          customers = data['customers']
+
+          assert len(customers) == 4
+
+          ranks = [c['decision_rank'] for c in customers]
+          assert ranks == [1, 2, 3, 4]
+
+          priorities = [c['priority'] for c in customers]
+          assert priorities.count('prioritize') == 2
+          assert priorities.count('standard') == 2
+
+          probabilities = [
+              c['repeat_purchase_probability']
+              for c in customers
+          ]
+
+          assert probabilities == sorted(
+              probabilities,
+              reverse=True
+          )
+
+          print('Decision smoke test: PASS')
+          " "$response"
+
+      - name: Show container logs on success
+        if: always()
+        run: |
+          docker logs nexus-retention-api
+
+      - name: Stop container
+        if: always()
+        run: |
+          docker rm --force nexus-retention-api
