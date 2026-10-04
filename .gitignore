@@ -65,3 +65,17 @@ mlruns/
 # Local API test payloads
 decision_request.json
 predict_request.json
+# Local ML / package caches
+hf_cache/
+pip_cache/
+
+# Local Python environment
+.venv/
+
+# Local request payloads
+decision_request.json
+predict_request.json
+
+# MLflow
+mlflow.db
+mlruns/
