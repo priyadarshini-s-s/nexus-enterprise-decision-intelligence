@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: fct_customer_cohort_retention
+
+    description: >
+      Monthly customer cohort retention analysis based on each customer's
+      first observed Olist purchase month.
+
+    columns:
+
+      - name: cohort_month
+        description: "Calendar month of the customer's first observed purchase."
+        tests:
+          - not_null
+
+      - name: activity_month
+        description: "Calendar month in which cohort customers were active."
+        tests:
+          - not_null
+
+      - name: retention_month
+        description: "Number of calendar months elapsed since cohort acquisition."
+        tests:
+          - not_null
+
+      - name: cohort_size
+        description: "Number of unique customers in the original cohort."
+        tests:
+          - not_null
+
+      - name: active_customers
+        description: "Unique cohort customers active during the activity month."
+        tests:
+          - not_null
+
+      - name: retention_rate_pct
+        description: "Percentage of original cohort customers active in the activity month."
+        tests:
+          - not_null

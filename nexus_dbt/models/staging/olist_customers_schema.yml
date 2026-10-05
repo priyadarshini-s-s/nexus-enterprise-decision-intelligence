@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: stg_olist_customers
+
+    description: >
+      Staging model for the Olist customer dimension. Each customer_id
+      maps an order-associated customer identifier to the persistent
+      customer_unique_id used for customer-level analytics.
+
+    columns:
+
+      - name: customer_id
+        description: "Order-associated Olist customer identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_unique_id
+        description: "Persistent Olist customer identity across orders."
+        tests:
+          - not_null
+
+      - name: customer_zip_code_prefix
+        description: "Customer ZIP code prefix."
+
+      - name: customer_city
+        description: "Customer city."
+
+      - name: customer_state
+        description: "Customer state."

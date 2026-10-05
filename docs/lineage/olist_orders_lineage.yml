@@ -1,0 +1,161 @@
+version: "1.0"
+
+dataset: olist_orders
+
+description: >
+  End-to-end lineage for the Olist order-performance analytical path
+  in the NEXUS platform, from the public source dataset through
+  Bronze, Spark Silver, Iceberg, dbt transformations, data quality,
+  and Gold analytics.
+
+nodes:
+
+  - id: olist_public_orders
+    type: source
+    layer: external
+    name: Olist Brazilian E-Commerce Dataset
+    asset: olist_orders_dataset.csv
+    grain: one record per order
+
+  - id: olist_bronze_orders
+    type: dataset
+    layer: bronze
+    name: Olist Orders Bronze
+    asset: data/bronze/olist/olist_orders_dataset.csv
+    format: csv
+
+  - id: olist_silver_orders
+    type: dataset
+    layer: silver
+    name: Olist Orders Spark Silver
+    asset: data/silver/olist_spark/orders
+    format: parquet
+    grain: one record per order
+
+  - id: olist_iceberg_orders
+    type: dataset
+    layer: lakehouse
+    name: Olist Orders Iceberg Table
+    asset: nexus.olist.orders
+    format: iceberg
+
+  - id: stg_olist_orders
+    type: model
+    layer: staging
+    name: stg_olist_orders
+    tool: dbt
+    asset: nexus_dbt/models/staging/stg_olist_orders.sql
+    materialization: view
+
+  - id: int_olist_orders_enriched
+    type: model
+    layer: intermediate
+    name: int_olist_orders_enriched
+    tool: dbt
+    asset: nexus_dbt/models/intermediate/int_olist_orders_enriched.sql
+    materialization: view
+
+  - id: fct_olist_order_performance
+    type: model
+    layer: gold
+    name: fct_olist_order_performance
+    tool: dbt
+    asset: nexus_dbt/models/marts/gold/fct_olist_order_performance.sql
+    materialization: table
+
+  - id: olist_orders_contract
+    type: governance
+    layer: quality
+    name: Olist Orders Data Contract
+    asset: docs/data_contracts/olist_orders_contract.yml
+
+  - id: olist_orders_dq
+    type: quality_check
+    layer: quality
+    name: Olist Orders Data Quality Validation
+    asset: scripts/data_quality/run_dq.py
+    report: reports/data_quality/dq_report.json
+
+edges:
+
+  - from: olist_public_orders
+    to: olist_bronze_orders
+    relationship: ingested_as
+
+  - from: olist_bronze_orders
+    to: olist_silver_orders
+    relationship: transformed_to
+    process: scripts/spark/spark_olist_orders.py
+
+  - from: olist_silver_orders
+    to: olist_iceberg_orders
+    relationship: materialized_as
+    process: scripts/spark/iceberg_orders_demo.py
+
+  - from: olist_iceberg_orders
+    to: stg_olist_orders
+    relationship: transformed_to
+    process: dbt
+
+  - from: stg_olist_orders
+    to: int_olist_orders_enriched
+    relationship: transformed_to
+    process: dbt
+
+  - from: int_olist_orders_enriched
+    to: fct_olist_order_performance
+    relationship: aggregated_to
+    process: dbt
+
+  - from: olist_orders_contract
+    to: olist_silver_orders
+    relationship: validates
+
+  - from: olist_orders_contract
+    to: olist_orders_dq
+    relationship: defines_rules_for
+
+  - from: olist_silver_orders
+    to: olist_orders_dq
+    relationship: validated_by
+
+  - from: fct_olist_order_performance
+    to: olist_orders_dq
+    relationship: quality_checked
+
+lineage_path:
+
+  source:
+    - olist_public_orders
+
+  ingestion:
+    - olist_bronze_orders
+
+  processing:
+    - olist_silver_orders
+
+  lakehouse:
+    - olist_iceberg_orders
+
+  analytics:
+    - stg_olist_orders
+    - int_olist_orders_enriched
+    - fct_olist_order_performance
+
+  governance:
+    - olist_orders_contract
+    - olist_orders_dq
+
+business_output:
+  name: Olist Order Performance Analytics
+  grain: one row per purchase date
+  metrics:
+    - total_orders
+    - unique_customers
+    - delivered_orders
+    - late_orders
+    - on_time_orders
+    - not_delivered_orders
+    - delivery_data_missing_orders
+    - late_delivery_rate_pct
+    - avg_delivery_duration_days

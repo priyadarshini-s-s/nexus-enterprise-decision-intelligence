@@ -1,5 +1,10 @@
 {{ config(materialized='view') }}
 
+-- Explicit dbt lineage dependency:
+-- The model reads the Iceberg source through iceberg_scan().
+-- depends_on makes the source dependency visible to dbt's manifest/lineage graph.
+-- depends_on: {{ source('olist', 'orders') }}
+
 SELECT
     order_id,
     customer_id,

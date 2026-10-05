@@ -1,0 +1,82 @@
+version: 2
+
+sources:
+  - name: olist_gold
+    description: >
+      Existing validated Olist Gold analytical artifacts produced by the
+      NEXUS customer intelligence pipeline.
+
+    meta:
+      owner: nexus_data_science
+      layer: gold
+      storage_format: parquet
+
+    tables:
+
+      - name: customer_360
+        description: >
+          Customer-level 360-degree analytical dataset containing persistent
+          customer identity, order behavior, payment observations, product
+          behavior, review metrics, repeat-customer status, lifetime metrics,
+          and average order value.
+
+        meta:
+          grain: one row per customer_unique_id
+          row_count: 96096
+          source_artifact: data/gold/olist/customer_360.parquet
+
+        columns:
+
+          - name: customer_unique_id
+            description: "Persistent Olist customer identity."
+
+          - name: customer_records
+            description: "Number of customer records associated with the persistent identity."
+
+          - name: total_orders
+            description: "Total observed orders for the customer."
+
+          - name: delivered_orders
+            description: "Observed delivered orders."
+
+          - name: cancelled_orders
+            description: "Observed cancelled orders."
+
+          - name: first_order_date
+            description: "Timestamp of the customer's first observed order."
+
+          - name: last_order_date
+            description: "Timestamp of the customer's most recent observed order."
+
+          - name: total_payment_value
+            description: "Total observed payment value."
+
+          - name: total_items
+            description: "Total observed items purchased."
+
+          - name: unique_products
+            description: "Number of unique products purchased."
+
+          - name: unique_categories
+            description: "Number of unique product categories purchased."
+
+          - name: unique_sellers
+            description: "Number of unique sellers associated with the customer's orders."
+
+          - name: review_count
+            description: "Number of observed reviews."
+
+          - name: average_review_score
+            description: "Average observed review score."
+
+          - name: low_review_count
+            description: "Number of low review scores."
+
+          - name: is_repeat_customer
+            description: "Whether the persistent customer has more than one observed order."
+
+          - name: customer_lifetime_days
+            description: "Elapsed days between first and last observed order."
+
+          - name: average_order_value
+            description: "Total observed payment value divided by observed orders."

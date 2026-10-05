@@ -1,0 +1,40 @@
+version: 2
+
+models:
+
+  - name: dim_customer_360
+
+    description: >
+      dbt semantic access layer over the validated Olist Customer 360 Gold
+      artifact. Grain is one row per persistent customer.
+
+    columns:
+
+      - name: customer_unique_id
+        description: "Persistent Olist customer identity."
+        tests:
+          - not_null
+          - unique
+
+      - name: total_orders
+        description: "Total observed orders."
+        tests:
+          - not_null
+      - name: total_payment_value
+        description: >
+          Total observed payment value. May be null when payment observation
+          status is not_observed.
+
+      - name: payment_observation_status
+        description: >
+          Indicates whether payment information was observed for the customer.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['observed', 'not_observed']
+
+      - name: is_repeat_customer
+        description: "Persistent customer with more than one observed order."
+        tests:
+          - not_null

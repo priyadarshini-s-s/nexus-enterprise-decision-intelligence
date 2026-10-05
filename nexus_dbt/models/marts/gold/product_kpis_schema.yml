@@ -1,0 +1,92 @@
+version: 2
+
+models:
+
+  - name: fct_product_kpis
+
+    description: >
+      Product-level transactional intelligence derived from Olist order-item,
+      product, order, and customer data. Grain is one row per observed product
+      appearing in at least one order item.
+
+    columns:
+
+      - name: product_id
+        description: "Olist product identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: product_category_name
+        description: "Original Portuguese Olist product category."
+
+      - name: product_category_name_english
+        description: "English category translation where available."
+
+      - name: product_name_lenght
+        description: "Observed product-name character length."
+
+      - name: product_description_lenght
+        description: "Observed product-description character length."
+
+      - name: product_photos_qty
+        description: "Number of product photos."
+
+      - name: order_item_count
+        description: "Number of observed order-item records for the product."
+        tests:
+          - not_null
+
+      - name: unique_orders
+        description: "Number of distinct observed orders containing the product."
+        tests:
+          - not_null
+
+      - name: unique_customers
+        description: >
+          Number of distinct persistent customers associated with orders
+          containing the product.
+        tests:
+          - not_null
+
+      - name: unique_sellers
+        description: "Number of distinct sellers associated with the product."
+        tests:
+          - not_null
+
+
+  - name: fct_category_kpis
+
+    description: >
+      Category-level product intelligence aggregated from the Product KPI
+      mart. Grain is one row per observed product category.
+
+    columns:
+
+      - name: product_category_name
+        description: "Original Olist product category."
+
+      - name: product_category_name_english
+        description: "English category translation where available."
+
+      - name: product_count
+        description: "Number of observed products in the category."
+        tests:
+          - not_null
+
+      - name: order_item_count
+        description: "Total observed order-item records across products."
+        tests:
+          - not_null
+
+      - name: product_customer_reach
+        description: >
+          Sum of product-level distinct-customer reach.
+          This is not a category-level distinct-customer count.
+        tests:
+          - not_null
+
+      - name: seller_count
+        description: "Sum of product-level distinct-seller counts."
+        tests:
+          - not_null

@@ -1,0 +1,93 @@
+version: 2
+
+models:
+
+  - name: fct_executive_kpis
+
+    description: >
+      Executive-level KPI snapshot derived from governed Olist order
+      performance and Customer 360 Gold analytics.
+      Grain is one row containing the current analytical-period aggregate.
+
+    columns:
+
+      - name: total_orders
+        description: "Total observed Olist orders."
+        tests:
+          - not_null
+
+      - name: delivered_orders
+        description: "Total delivered orders."
+        tests:
+          - not_null
+
+      - name: total_customers
+        description: "Total persistent customers represented in Customer 360."
+        tests:
+          - not_null
+
+      - name: repeat_customers
+        description: "Customers with more than one observed order."
+        tests:
+          - not_null
+
+      - name: repeat_customer_rate_pct
+        description: "Percentage of persistent customers who are repeat customers."
+        tests:
+          - not_null
+
+      - name: late_orders
+        description: "Delivered orders classified as late."
+        tests:
+          - not_null
+
+      - name: on_time_orders
+        description: "Delivered orders classified as on time."
+        tests:
+          - not_null
+
+      - name: not_delivered_orders
+        description: "Orders that were not delivered."
+        tests:
+          - not_null
+
+      - name: delivery_data_missing_orders
+        description: >
+          Delivered orders for which delivery timing information is missing.
+        tests:
+          - not_null
+
+      - name: overall_late_delivery_rate_pct
+        description: "Late delivered orders as a percentage of delivered orders."
+        tests:
+          - not_null
+
+      - name: overall_on_time_delivery_rate_pct
+        description: "On-time delivered orders as a percentage of delivered orders."
+        tests:
+          - not_null
+
+      - name: total_payment_value
+        description: >
+          Total observed payment value from Customer 360.
+          May exclude customers whose payment observation was unavailable.
+
+        tests:
+          - not_null
+
+      - name: overall_average_order_value
+        description: "Observed payment value divided by total observed orders."
+        tests:
+          - not_null
+
+      - name: average_customer_order_value
+        description: >
+          Average customer-level observed payment value per observed order.
+
+        tests:
+          - not_null
+
+      - name: avg_delivery_duration_days
+        description: "Average observed delivery duration in days."
+        tests:
+          - not_null
