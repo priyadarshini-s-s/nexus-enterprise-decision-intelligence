@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_olist_orders
+    description: >
+      Staging representation of the Olist orders Silver dataset.
+      The underlying data is managed as an Apache Iceberg table
+      and queried through DuckDB.
+
+    columns:
+
+      - name: order_id
+        description: "Unique Olist order identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_id
+        description: "Olist customer identifier."
+        tests:
+          - not_null
+
+      - name: order_status
+        description: "Order lifecycle status."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - delivered
+                  - shipped
+                  - canceled
+                  - unavailable
+                  - invoiced
+                  - processing
+                  - created
+                  - approved
+
+      - name: order_purchase_timestamp
+        description: "Timestamp when the customer placed the order."
+        tests:
+          - not_null
+
+      - name: is_late_delivery
+        description: "Binary indicator for late delivery."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 0
+                  - 1

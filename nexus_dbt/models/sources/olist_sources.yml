@@ -1,0 +1,44 @@
+version: 2
+
+sources:
+  - name: olist
+    description: "Olist Brazilian E-Commerce public dataset exposed through Apache Iceberg."
+
+    tables:
+      - name: orders
+        description: "Order-level Silver dataset managed as an Apache Iceberg table."
+
+        meta:
+          storage_format: iceberg
+          query_engine: duckdb
+
+        columns:
+          - name: order_id
+            description: "Unique Olist order identifier."
+
+          - name: customer_id
+            description: "Olist customer identifier associated with the order."
+
+          - name: order_status
+            description: "Current order lifecycle status."
+
+          - name: order_purchase_timestamp
+            description: "Timestamp when the customer placed the order."
+
+          - name: order_approved_at
+            description: "Timestamp when payment/order approval was recorded."
+
+          - name: order_delivered_carrier_date
+            description: "Timestamp when the order was handed to the carrier."
+
+          - name: order_delivered_customer_date
+            description: "Timestamp when the order was delivered to the customer."
+
+          - name: order_estimated_delivery_date
+            description: "Estimated delivery date."
+
+          - name: delivery_delay_days
+            description: "Difference between actual and estimated delivery timing."
+
+          - name: is_late_delivery
+            description: "Binary indicator identifying late deliveries."

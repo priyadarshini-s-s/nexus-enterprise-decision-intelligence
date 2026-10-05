@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: fct_olist_order_performance
+    description: >
+      Daily Gold-layer operational KPI table for Olist order
+      and delivery performance.
+
+    columns:
+
+      - name: purchase_date
+        description: "Date on which orders were purchased."
+        tests:
+          - not_null
+          - unique
+
+      - name: total_orders
+        description: "Total number of orders purchased on the date."
+        tests:
+          - not_null
+
+      - name: unique_customers
+        description: "Number of distinct customers placing orders."
+        tests:
+          - not_null
+
+      - name: delivered_orders
+        description: "Number of delivered orders."
+        tests:
+          - not_null
+
+      - name: late_orders
+        description: "Number of orders classified as late."
+        tests:
+          - not_null
+
+      - name: on_time_orders
+        description: "Number of orders classified as on time."
+        tests:
+          - not_null
+
+      - name: late_delivery_rate_pct
+        description: >
+          Percentage of delivered orders classified as late.
+          NULL indicates that no delivered orders existed for the day,
+          so the rate is not applicable.
+          
+      - name: avg_delivery_duration_days
+        description: "Average completed-order delivery duration in days."
+
+      - name: delivery_data_missing_orders
+        description: >
+          Delivered-status orders for which the customer delivery
+          timestamp is missing in the source data.
+        tests:
+          - not_null

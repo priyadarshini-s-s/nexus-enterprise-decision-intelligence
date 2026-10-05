@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: int_olist_orders_enriched
+    description: >
+      Intermediate analytical representation of Olist orders.
+      Adds calendar dimensions, delivery duration, and delivery
+      performance classification to the staging order data.
+
+    columns:
+
+      - name: order_id
+        description: "Unique Olist order identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_id
+        description: "Olist customer identifier."
+        tests:
+          - not_null
+
+      - name: purchase_date
+        description: "Calendar date on which the order was purchased."
+        tests:
+          - not_null
+
+      - name: purchase_year
+        description: "Calendar year of order purchase."
+
+      - name: purchase_month
+        description: "Calendar month of order purchase."
+
+      - name: purchase_day_of_week
+        description: "Day of week of order purchase."
+
+      - name: delivery_performance
+        description: >
+          Delivery classification based on delivery completion
+          and late-delivery status.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - not_delivered
+                  - late
+                  - on_time
+                  - delivery_data_missing
+                  - unknown
