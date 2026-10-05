@@ -1,0 +1,39 @@
+name: NEXUS Data Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  data-quality:
+    name: Validate Data Contract
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyspark==4.1.1 pyarrow==21.0.0 pyyaml==6.0.3
+
+      - name: Generate CI fixture
+        run: |
+          python -m scripts.data_quality.create_ci_fixture
+
+      - name: Run data quality validation
+        run: |
+          python -m scripts.data_quality.run_dq \
+            --contract docs/data_contracts/olist_orders_contract.yml \
+            --input tests/data_quality/fixtures/olist_orders \
+            --skip-reconciliation
