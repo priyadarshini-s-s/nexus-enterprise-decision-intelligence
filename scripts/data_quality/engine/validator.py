@@ -90,7 +90,6 @@ def validate_custom_rules(
         if rule_function is not None:
             result = rule_function(df)
 
-            # Preserve severity declared in the contract.
             result["severity"] = rule.get(
                 "severity",
                 "critical",
@@ -104,11 +103,13 @@ def validate_custom_rules(
 def validate(
     df: DataFrame,
     contract: dict[str, Any],
+    skip_reconciliation: bool = False,
 ) -> list[dict[str, Any]]:
     """Execute all supported contract-driven checks."""
 
     results: list[dict[str, Any]] = []
 
+    # Generic schema checks
     results.extend(
         validate_schema(
             df,
@@ -116,13 +117,16 @@ def validate(
         )
     )
 
-    results.extend(
-        validate_reconciliation(
-            df,
-            contract,
+    # Dataset reconciliation
+    if not skip_reconciliation:
+        results.extend(
+            validate_reconciliation(
+                df,
+                contract,
+            )
         )
-    )
 
+    # Custom semantic rules
     results.extend(
         validate_custom_rules(
             df,

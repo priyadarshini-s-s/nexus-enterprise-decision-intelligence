@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
         choices=["parquet"],
         help="Input dataset format.",
     )
+    parser.add_argument(
+        "--skip-reconciliation",
+        action="store_true",
+        help="Skip dataset population reconciliation.",
+    )
 
     parser.add_argument(
         "--report",
@@ -77,10 +82,10 @@ def main() -> int:
 
     try:
         df = spark.read.format(args.format).load(str(input_path))
-
         results = validate(
             df=df,
             contract=contract,
+            skip_reconciliation=args.skip_reconciliation,
         )
 
         report = build_report(
