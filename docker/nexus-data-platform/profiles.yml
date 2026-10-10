@@ -1,0 +1,10 @@
+nexus_dbt:
+  outputs:
+    dev:
+      type: duckdb
+      path: /opt/nexus/data/warehouse/nexus.duckdb
+      threads: 4
+      extensions:
+        - httpfs
+        - iceberg
+  target: dev

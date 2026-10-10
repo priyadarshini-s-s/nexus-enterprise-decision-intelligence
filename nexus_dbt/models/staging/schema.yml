@@ -3,12 +3,10 @@ version: 2
 models:
   - name: stg_olist_orders
     description: >
-      Staging representation of the Olist orders Silver dataset.
-      The underlying data is managed as an Apache Iceberg table
-      and queried through DuckDB.
+      Staging representation of the Olist orders Silver dataset,
+      read from canonical Silver Parquet using DuckDB.
 
     columns:
-
       - name: order_id
         description: "Unique Olist order identifier."
         tests:
@@ -42,9 +40,8 @@ models:
           - not_null
 
       - name: is_late_delivery
-        description: "Binary indicator for late delivery."
+        description: "Binary lateness indicator when both delivery dates are available."
         tests:
-          - not_null
           - accepted_values:
               arguments:
                 values:

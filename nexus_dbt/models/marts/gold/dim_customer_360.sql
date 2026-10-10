@@ -3,5 +3,5 @@
 SELECT
     *
 FROM read_parquet(
-    'D:/Projects/NEXUS/data/gold/olist/customer_360.parquet'
+    '{{ var("nexus_data_root") }}/gold/olist/customer_360.parquet'
 )

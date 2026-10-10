@@ -4,7 +4,7 @@ WITH source_metrics AS (
         COUNT(*) AS source_order_items,
         COUNT(DISTINCT product_id) AS source_products
     FROM read_parquet(
-        'D:/Projects/NEXUS/data/silver/olist/order_items.parquet'
+        '{{ var("nexus_data_root") }}/silver/olist/order_items.parquet'
     )
 
 ),

@@ -1,0 +1,105 @@
+{
+  "dataset": "olist_orders",
+  "timestamp_utc": "2026-10-05T15:03:19.174049+00:00",
+  "summary": {
+    "total_checks": 11,
+    "passed": 11,
+    "failed": 0,
+    "status": "PASS"
+  },
+  "checks": [
+    {
+      "check": "not_null",
+      "column": "order_id",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0
+    },
+    {
+      "check": "unique",
+      "column": "order_id",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0
+    },
+    {
+      "check": "not_null",
+      "column": "customer_id",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0
+    },
+    {
+      "check": "not_null",
+      "column": "order_status",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0
+    },
+    {
+      "check": "accepted_values",
+      "column": "order_status",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0,
+      "accepted_values": [
+        "delivered",
+        "shipped",
+        "canceled",
+        "unavailable",
+        "invoiced",
+        "processing",
+        "created",
+        "approved"
+      ]
+    },
+    {
+      "check": "not_null",
+      "column": "order_purchase_timestamp",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0
+    },
+    {
+      "check": "not_null",
+      "column": "is_late_delivery",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0
+    },
+    {
+      "check": "accepted_values",
+      "column": "is_late_delivery",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0,
+      "accepted_values": [
+        0,
+        1
+      ]
+    },
+    {
+      "check": "row_count",
+      "column": null,
+      "status": "PASS",
+      "observed": 99441,
+      "expected": 99441
+    },
+    {
+      "check": "ORD-007",
+      "column": "order_delivered_customer_date",
+      "status": "PASS",
+      "observed": 0,
+      "expected": 0,
+      "severity": "warning"
+    },
+    {
+      "check": "ORD-008",
+      "column": "order_delivered_customer_date",
+      "status": "PASS",
+      "observed": 8,
+      "expected": "tracked explicitly",
+      "severity": "warning"
+    }
+  ]
+}

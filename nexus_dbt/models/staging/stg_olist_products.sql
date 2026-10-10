@@ -8,5 +8,5 @@ SELECT
     product_photos_qty
 
 FROM read_parquet(
-    'D:/Projects/NEXUS/data/silver/olist/products.parquet'
+    '{{ var("nexus_data_root") }}/silver/olist/products.parquet'
 )

@@ -8,5 +8,5 @@ SELECT
     shipping_limit_date
 
 FROM read_parquet(
-    'D:/Projects/NEXUS/data/silver/olist/order_items.parquet'
+    '{{ var("nexus_data_root") }}/silver/olist/order_items.parquet'
 )

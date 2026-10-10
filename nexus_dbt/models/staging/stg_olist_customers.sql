@@ -8,5 +8,5 @@ SELECT
     customer_state
 
 FROM read_parquet(
-    'D:/Projects/NEXUS/data/silver/olist/customers.parquet'
+    '{{ var("nexus_data_root") }}/silver/olist/customers.parquet'
 )

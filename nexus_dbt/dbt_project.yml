@@ -4,7 +4,8 @@
 # name or the intended use of these models
 name: 'nexus_dbt'
 version: '1.0.0'
-
+vars:
+  nexus_data_root: "D:/Projects/NEXUS/data"
 # This setting configures which "profile" dbt uses for this project.
 profile: 'nexus_dbt'
 
