@@ -1,0 +1,286 @@
+version: '1.0'
+dataset:
+  name: dunnhumby_complete_journey
+  domain: marketing_causal
+  layer: bronze_source_bundle
+  owner: nexus_data_platform
+  description: 'Real-world household shopping transactions, campaign assignments, promotional placement,
+    product metadata, coupons, redemptions, and household demographics. This contract describes the source
+    bundle; it does not assert causal identification.
+
+    '
+provenance:
+  source_name: dunnhumby - The Complete Journey
+  downloaded_from: https://www.kaggle.com/datasets/frtgnn/dunnhumby-the-complete-journey
+  original_publisher: dunnhumby
+  license_status: UNVERIFIED - confirm dataset-specific license and redistribution terms
+  raw_directory: data/raw/dunnhumby
+  raw_files_are_git_ignored: true
+  source_files_modified: false
+tables:
+- name: campaign_desc
+  file: campaign_desc.csv
+  row_count_observed: 30
+  grain: One record per campaign description
+  candidate_key:
+    columns:
+    - CAMPAIGN
+    validation: PASS - unique in observed source
+  event_time:
+    columns:
+    - START_DAY
+    - END_DAY
+    semantic: Campaign start and end expressed as source-relative day numbers
+  quality:
+    blank_fields_observed: 0
+    rules:
+    - CAMPAIGN must be unique and non-null
+    - START_DAY must be less than or equal to END_DAY
+- name: campaign_table
+  file: campaign_table.csv
+  row_count_observed: 7208
+  grain: One household-campaign assignment
+  candidate_key:
+    columns:
+    - household_key
+    - CAMPAIGN
+    validation: PASS - unique pairs in observed source
+  quality:
+    blank_fields_observed: 0
+    rules:
+    - Household-campaign pairs must be unique
+    - Every CAMPAIGN must exist in campaign_desc
+  notes:
+  - Observed 1,584 distinct assigned households
+  - Observed 1,316 households assigned to multiple campaigns
+  - Assignment does not prove a specific coupon was received or redeemed
+- name: causal_data
+  file: causal_data.csv
+  row_count_observed: 36786524
+  grain: 'Unresolved: repeated PRODUCT_ID-STORE_ID-WEEK_NO combinations have differing display and/or
+    mailer values; source semantics must be verified before declaring the row grain'
+  candidate_key:
+    columns:
+    - PRODUCT_ID
+    - STORE_ID
+    - WEEK_NO
+    validation: FAILS_UNIQUENESS - repeated product-store-week tuples observed
+  event_time:
+    column: WEEK_NO
+    semantic: Source-relative week number
+  quality:
+    blank_fields_observed: 0
+    rules:
+    - PRODUCT_ID must exist in product
+    - display and mailer are categorical source codes until documented otherwise
+  notes:
+  - 'Observed WEEK_NO range: 9-101'
+  - Observed display and mailer values are not limited to binary 0/1
+  key_validation:
+    status: FAILS_UNIQUENESS
+    rows: 36786524
+    distinct_candidate_key_tuples: 36771279
+    duplicate_groups: 15245
+    excess_rows: 15245
+    largest_group_size: 2
+    groups_with_multiple_display_values: 15208
+    groups_with_multiple_mailer_values: 105
+    exact_duplicate_excess_rows_across_all_five_columns: 0
+    nulls_in_candidate_key_columns: 0
+    decision: Do not enforce candidate key; preserve all source rows; do not deduplicate until source
+      semantics are verified
+  documented_code_semantics:
+    display:
+      '0': No display
+      '1': Store front
+      '2': Store rear
+      '3': Front end cap
+      '4': Mid-aisle end cap
+      '5': Rear end cap
+      '6': Side-aisle end cap
+      '7': In-aisle
+      '9': Secondary-location display
+      A: In-shelf
+    mailer:
+      '0': Not in advertisement
+      A: Interior-page feature
+      C: Interior-page line item
+      D: Front-page feature
+      F: Back-page feature
+      H: Wrap front feature
+      J: Wrap interior coupon
+      L: Wrap back feature
+      P: Interior-page coupon
+      X: Free on interior page
+      Z: Free on front, back, or wrap
+  semantics_references:
+  - https://bradleyboehmke.github.io/completejourney/reference/promotions.html
+  - https://raw.githubusercontent.com/Lanbig/CSC465-visualization-project/master/Dataset/dunnhumby%20-%20The%20Complete%20Journey%20User%20Guide.pdf
+  interpretation_guardrail: Placement codes describe promotional placement, not treatment effects. Derived
+    binary indicators may be used for exploratory analysis, but causal claims require a justified design
+    and confounding assessment.
+  observed_grain: One unique observed combination of PRODUCT_ID, STORE_ID, WEEK_NO, display, and mailer
+    in the current source artifact
+  observed_unique_combination:
+  - PRODUCT_ID
+  - STORE_ID
+  - WEEK_NO
+  - display
+  - mailer
+  business_grain_status: 'UNRESOLVED: 15,245 product-store-week combinations have two distinct placement
+    records'
+  source_artifact_note: The raw CSV contains 36,786,524 rows, matching the published Kaggle dataset inventory
+    for this artifact. Silver has the same row count and independently reproduces the candidate-key duplicates.
+    No source download or transformation defect has been demonstrated. A smaller processed R-package artifact
+    is not directly comparable evidence of a version mismatch. The intended business grain remains unresolved.
+- name: coupon
+  file: coupon.csv
+  row_count_observed: 124548
+  grain: Coupon UPC-product-campaign mapping record
+  candidate_key:
+    columns:
+    - COUPON_UPC
+    - PRODUCT_ID
+    - CAMPAIGN
+    validation: NOT UNIQUE - exact combination duplicates were observed
+  quality:
+    blank_fields_observed: 0
+    rules:
+    - PRODUCT_ID must exist in product
+  notes:
+  - COUPON_UPC alone is not unique
+  - Repeated and multi-product mappings must not be silently deduplicated
+  - Observed 1,088 coupon UPCs mapped to multiple products
+- name: coupon_redempt
+  file: coupon_redempt.csv
+  row_count_observed: 2318
+  grain: Household-coupon-campaign redemption record on a source-relative day
+  candidate_key:
+    columns:
+    - household_key
+    - DAY
+    - COUPON_UPC
+    - CAMPAIGN
+    validation: PASS - unique full tuples in observed source
+  event_time:
+    column: DAY
+    semantic: Source-relative redemption day
+  quality:
+    blank_fields_observed: 0
+    rules:
+    - Redemption coupon UPC and campaign must match at least one coupon mapping
+  notes:
+  - Observed redemption rows can map to multiple products through coupon
+  - A redemption must not be treated as proof of purchase of a uniquely identified product
+- name: hh_demographic
+  file: hh_demographic.csv
+  row_count_observed: 801
+  grain: One household demographic record
+  candidate_key:
+    columns:
+    - household_key
+    validation: PASS - unique in observed source
+  quality:
+    blank_fields_observed: 0
+    rules:
+    - household_key must be unique and non-null
+  notes:
+  - Demographics cover only a subset of transaction households
+  - Do not discard households with missing demographic matches by default
+- name: product
+  file: product.csv
+  row_count_observed: 92353
+  grain: One product catalog record
+  candidate_key:
+    columns:
+    - PRODUCT_ID
+    validation: PASS - unique in observed source
+  quality:
+    blank_fields_observed: 30652
+    rules:
+    - PRODUCT_ID must be unique and non-null
+    - Blank descriptive attributes must remain explicitly missing unless a documented rule applies
+  notes:
+  - 'Observed blanks: CURR_SIZE_OF_PRODUCT 30,607; DEPARTMENT 15; COMMODITY_DESC 15; SUB_COMMODITY_DESC
+    15'
+- name: transaction_data
+  file: transaction_data.csv
+  row_count_observed: 2595732
+  grain: Observed household basket-product transaction line; exact natural key not yet established
+  candidate_key:
+    columns: []
+    validation: UNRESOLVED - source contains no declared transaction-line primary key
+  event_time:
+    column: DAY
+    semantic: Source-relative transaction day; not a calendar timestamp
+  quality:
+    blank_fields_observed: 0
+    rules:
+    - PRODUCT_ID must exist in product
+    - Do not globally cap large QUANTITY values without category-aware investigation
+    - Do not silently remove zero-value or unusual discount records
+  notes:
+  - 'Observed DAY range: 1-711 and WEEK_NO range: 1-102'
+  - Large quantities frequently occur in gasoline and miscellaneous sales categories
+  - Observed household population exceeds demographic-table coverage
+relationships:
+- from: campaign_table.CAMPAIGN
+  to: campaign_desc.CAMPAIGN
+  observed_result: PASS - all assigned campaign IDs matched
+- from: coupon.PRODUCT_ID
+  to: product.PRODUCT_ID
+  observed_result: PASS - all observed coupon products matched
+- from: causal_data.PRODUCT_ID
+  to: product.PRODUCT_ID
+  observed_result: PASS - all observed promotional products matched
+- from: coupon_redempt.(COUPON_UPC, CAMPAIGN)
+  to: coupon.(COUPON_UPC, CAMPAIGN)
+  observed_result: PASS - every observed redemption matched at least one mapping
+- from: transaction_data.PRODUCT_ID
+  to: product.PRODUCT_ID
+  observed_result: PASS - all observed transaction products matched
+- from: transaction_data.household_key
+  to: hh_demographic.household_key
+  observed_result: PARTIAL - 801 of 2,500 transaction households have demographic records
+time_semantics:
+  day_and_week_fields: 'DAY, START_DAY, END_DAY, and WEEK_NO are source-relative numeric time fields.
+    Do not convert them to calendar timestamps without a documented, validated mapping.
+
+    '
+  ingestion_time: 'No source ingestion timestamp is present in the raw CSVs. Add ingestion metadata only
+    in a downstream pipeline if implemented.
+
+    '
+causal_analysis_guardrails:
+- Campaign assignment, coupon mapping, redemption, and product purchase are distinct concepts.
+- Do not assume campaign assignment was randomized.
+- Do not infer a unique purchased product from coupon redemption alone.
+- Do not interpret campaign-window sales counts as incremental campaign effects.
+- Define treatment, outcome, eligibility, comparison population, and identification assumptions before
+  estimating effects.
+- Keep this dataset isolated from Olist, RetailRocket, and OTTO identities unless an authoritative crosswalk
+  is provided.
+privacy:
+  pii_present: false
+  notes: 'No direct personal identifiers were identified in the inspected column headers. Household-level
+    demographic attributes may still be sensitive or quasi-identifying and require appropriate access
+    and usage controls.
+
+    '
+lineage:
+  upstream: Downloaded dunnhumby Complete Journey source CSVs
+  transformations:
+  - ingestion/transform_dunnhumby_silver.py: casts and normalizes source columns, then writes Silver Parquet while preserving row counts and source records
+  - ingestion/validate_dunnhumby_silver.py: checks row counts, column names and order, configured candidate keys, and configured relationships
+  downstream_products:
+  - 'Planned: validated Dunnhumby Silver tables'
+  - 'Planned: campaign response analysis'
+  - 'Planned: defensible experimentation and uplift analysis'
+status:
+  contract_status: Source audit documented; Silver row-count and column-order reconciliation passed for all eight tables; configured candidate-key and referential-integrity checks passed. Causal design and selected data-grain questions remain unresolved.
+  unresolved:
+  - Confirm dataset-specific license and redistribution terms
+  - Validate causal_data candidate key and exact grain
+  - Establish transaction_data natural-key behavior
+  - Cross-check documented display and mailer code meanings against the cited source documentation
+  - Define and validate treatment, outcome, and comparison strategy
