@@ -3,13 +3,13 @@ version: "1.0"
 dataset: olist_orders
 
 description: >
-  End-to-end lineage for the Olist order-performance analytical path
-  in the NEXUS platform, from the public source dataset through
-  Bronze, Spark Silver, Iceberg, dbt transformations, data quality,
-  and Gold analytics.
+  Evidence-aligned lineage for the NEXUS Olist order-performance
+  analytics path. The active dbt path reads canonical Silver Parquet.
+  Airflow separately validates the Spark Silver orders dataset.
+  Iceberg is documented as a separate lakehouse asset and is not
+  represented as the active dbt input.
 
 nodes:
-
   - id: olist_public_orders
     type: source
     layer: external
@@ -23,12 +23,21 @@ nodes:
     name: Olist Orders Bronze
     asset: data/bronze/olist/olist_orders_dataset.csv
     format: csv
+    grain: one record per order
 
-  - id: olist_silver_orders
+  - id: olist_spark_silver_orders
     type: dataset
     layer: silver
     name: Olist Orders Spark Silver
     asset: data/silver/olist_spark/orders
+    format: parquet
+    grain: one record per order
+
+  - id: olist_canonical_silver_orders
+    type: dataset
+    layer: silver
+    name: Olist Orders Canonical Silver
+    asset: data/silver/olist/orders.parquet
     format: parquet
     grain: one record per order
 
@@ -38,6 +47,7 @@ nodes:
     name: Olist Orders Iceberg Table
     asset: nexus.olist.orders
     format: iceberg
+    status: separate_asset_not_active_dbt_input
 
   - id: stg_olist_orders
     type: model
@@ -45,6 +55,15 @@ nodes:
     name: stg_olist_orders
     tool: dbt
     asset: nexus_dbt/models/staging/stg_olist_orders.sql
+    materialization: view
+    input: data/silver/olist/orders.parquet
+
+  - id: stg_olist_customers
+    type: model
+    layer: staging
+    name: stg_olist_customers
+    tool: dbt
+    asset: nexus_dbt/models/staging/stg_olist_customers.sql
     materialization: view
 
   - id: int_olist_orders_enriched
@@ -62,6 +81,7 @@ nodes:
     tool: dbt
     asset: nexus_dbt/models/marts/gold/fct_olist_order_performance.sql
     materialization: table
+    grain: one row per purchase_date
 
   - id: olist_orders_contract
     type: governance
@@ -72,79 +92,153 @@ nodes:
   - id: olist_orders_dq
     type: quality_check
     layer: quality
-    name: Olist Orders Data Quality Validation
+    name: Olist Orders Silver Data Quality Gate
+    tool: PySpark
     asset: scripts/data_quality/run_dq.py
+    input: data/silver/olist_spark/orders
     report: reports/data_quality/dq_report.json
 
-edges:
+  - id: olist_orders_dbt_tests
+    type: quality_check
+    layer: quality
+    name: NEXUS dbt Build and Test Checks
+    tool: dbt
+    execution_tasks:
+      - dbt_build
+      - dbt_test
+    asset: nexus_dbt/tests
 
+  - id: olist_gold_validation
+    type: quality_check
+    layer: quality
+    name: NEXUS Gold Object Validation
+    tool: DuckDB
+    execution_task: gold_validation
+    asset: orchestration/airflow/dags/nexus_data_pipeline.py
+    warehouse: data/warehouse/nexus.duckdb
+    validation_scope:
+      - object_exists
+      - row_count_greater_than_zero
+    validated_objects:
+      - dim_customer_360
+      - fct_category_kpis
+      - fct_customer_cohort_retention
+      - fct_executive_kpis
+      - fct_olist_order_performance
+      - fct_product_kpis
+
+  - id: olist_airflow_pipeline
+    type: orchestration
+    layer: orchestration
+    name: NEXUS Data Pipeline
+    tool: Apache Airflow
+    asset: orchestration/airflow/dags/nexus_data_pipeline.py
+    dag_id: nexus_data_pipeline
+    execution_order:
+      - validate_silver
+      - dq_gate
+      - dbt_build
+      - dbt_test
+      - gold_validation
+
+edges:
   - from: olist_public_orders
     to: olist_bronze_orders
     relationship: ingested_as
 
   - from: olist_bronze_orders
-    to: olist_silver_orders
+    to: olist_spark_silver_orders
     relationship: transformed_to
     process: scripts/spark/spark_olist_orders.py
 
-  - from: olist_silver_orders
-    to: olist_iceberg_orders
-    relationship: materialized_as
-    process: scripts/spark/iceberg_orders_demo.py
-
-  - from: olist_iceberg_orders
-    to: stg_olist_orders
+  - from: olist_bronze_orders
+    to: olist_canonical_silver_orders
     relationship: transformed_to
-    process: dbt
+    process: Silver ingestion and transformation workflow
+
+  - from: olist_spark_silver_orders
+    to: olist_iceberg_orders
+    relationship: separately_materialized_as
+    process: scripts/spark/iceberg_orders_demo.py
+    note: >
+      Documented as a separate lakehouse asset, not as the active
+      source of stg_olist_orders.
+
+  - from: olist_canonical_silver_orders
+    to: stg_olist_orders
+    relationship: read_by
+    process: dbt read_parquet
 
   - from: stg_olist_orders
     to: int_olist_orders_enriched
     relationship: transformed_to
     process: dbt
 
+  - from: stg_olist_customers
+    to: int_olist_orders_enriched
+    relationship: joined_into
+    process: dbt left join on customer_id
+
   - from: int_olist_orders_enriched
     to: fct_olist_order_performance
     relationship: aggregated_to
-    process: dbt
-
-  - from: olist_orders_contract
-    to: olist_silver_orders
-    relationship: validates
+    process: dbt group by purchase_date
 
   - from: olist_orders_contract
     to: olist_orders_dq
     relationship: defines_rules_for
 
-  - from: olist_silver_orders
+  - from: olist_spark_silver_orders
     to: olist_orders_dq
     relationship: validated_by
 
+  - from: olist_orders_dq
+    to: olist_airflow_pipeline
+    relationship: executed_as
+    process: dq_gate
+
+  - from: olist_orders_contract
+    to: olist_spark_silver_orders
+    relationship: specifies_quality_expectations_for
+
+  - from: olist_airflow_pipeline
+    to: olist_orders_dbt_tests
+    relationship: executes
+
+  - from: olist_airflow_pipeline
+    to: olist_gold_validation
+    relationship: executes
+
   - from: fct_olist_order_performance
-    to: olist_orders_dq
-    relationship: quality_checked
+    to: olist_gold_validation
+    relationship: included_in_validation_scope
 
 lineage_path:
-
   source:
     - olist_public_orders
 
   ingestion:
     - olist_bronze_orders
 
-  processing:
-    - olist_silver_orders
+  silver_quality_path:
+    - olist_spark_silver_orders
+    - olist_orders_contract
+    - olist_orders_dq
 
-  lakehouse:
-    - olist_iceberg_orders
-
-  analytics:
+  dbt_analytics_path:
+    - olist_canonical_silver_orders
     - stg_olist_orders
+    - stg_olist_customers
     - int_olist_orders_enriched
     - fct_olist_order_performance
 
-  governance:
-    - olist_orders_contract
-    - olist_orders_dq
+  separate_lakehouse_asset:
+    - olist_iceberg_orders
+
+  orchestration:
+    - olist_airflow_pipeline
+    - olist_orders_dbt_tests
+    - olist_gold_validation
 
 business_output:
   name: Olist Order Performance Analytics
