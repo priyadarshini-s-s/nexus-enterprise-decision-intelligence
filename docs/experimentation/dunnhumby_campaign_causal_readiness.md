@@ -99,7 +99,53 @@ randomization, household exposure, joins, or causal evidence.
 
 ## Reproducibility
 
-The figures in this report are based on read-only DuckDB diagnostics run
-against the local raw Dunnhumby CSV files. The analysis scripts and
-environment should be versioned separately when finalized. Raw data remain
-excluded from Git.
+The local raw Dunnhumby CSV files are analyzed using DuckDB. The
+reproducible diagnostic entry point is:
+
+`python ingestion/analyze_dunnhumby_campaign_readiness.py`
+
+The script calculates baseline household outcomes, absolute standardized
+mean differences (SMDs), pre-campaign weekly sales, Campaign 30 descriptive
+before/during changes, and demographic coverage. It does not fit a causal
+or uplift model.
+
+### Calculation conventions
+
+- Baseline outcomes cover the 28 days immediately before each campaign
+  start day.
+- Household-level sales are summed over the window. Baskets and active
+  days are counted as distinct `BASKET_ID` and `DAY` values.
+- Eligible assigned households exclude households assigned to another
+  campaign whose calendar window overlaps the target campaign.
+- Comparison households are drawn from households observed in transaction
+  data, exclude assignment to the target campaign, and exclude assignments
+  overlapping the target campaign window. This is an eligibility screen,
+  not proof of no exposure.
+- The script calculates absolute SMD as the absolute difference in group
+  means divided by the square root of the average of the two groups'
+  sample variances. This convention reproduces the six reference SMD rows
+  recorded above.
+- Weekly sales comparisons use the eight complete `WEEK_NO` intervals
+  immediately preceding the campaign-overlapping week. The selected weeks
+  are 25-32 for Campaign 26, 33-40 for Campaign 29, and 39-46 for
+  Campaign 30. Households with no transactions in a selected week have
+  zero sales for that week.
+- Campaign 30's before/during windows each cover 47 days: days 276-322
+  and 323-369, respectively.
+
+### Verification and limitations
+
+The diagnostic run reproduced all six recorded baseline SMD rows to four
+decimal places, the Campaign 30 descriptive before/during values, and
+demographic coverage. The weekly diagnostics show higher mean weekly sales
+for assigned households in every selected pre-campaign week for Campaigns
+26, 29, and 30.
+
+These results are descriptive and observational. Matching the reference
+figures verifies computational reproducibility, not randomization,
+actual campaign exposure, absence of confounding, or a causal identification
+strategy. Do not present these contrasts as causal effects or validated
+uplift targets.
+
+Raw data remain excluded from Git. The source-data license remains
+unverified.
